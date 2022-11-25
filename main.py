@@ -1,5 +1,9 @@
+from UI import *
+
+
 def main():
-    pass
+    ui = MainWindow()
+    ui.mainloop()
 
 
 if __name__ == '__main__':
