@@ -2,10 +2,24 @@ import vk_api, json, telebot, os
 from tkinter.messagebox import showerror, showwarning
 
 
+def start_bot(login, password, token, count):
+    if not login or not password or not token or not count:
+        showerror(title="Ошибка!", message="Заполните пустые поля!")
+        return
+
+    if not count.isdigit():
+        showerror(title="Ошибка!", message="Кол-во постов для сбора должно быть числом!")
+        return
+
+    edit_file("Account.txt", login + "\n" + password)
+    edit_file("TgToken.txt", token)
+
+    wall_parsing(count)
+
+
 def auth_vk_password():
     try:
-        with open("Account.txt", "r") as file:
-            account = file.readlines()
+        account = read_file('Account.txt')
     except BaseException as BE:
         showerror(title="Ошибка!", message="Ошибка чтения файла данных аккаунта ВК!")
         return
@@ -20,16 +34,24 @@ def auth_vk_password():
 
 
 def read_file(path):
-    with open(path, "r", encoding="utf-8") as file:
-        return file.readlines()
+    try:
+        with open(path, "r", encoding="utf-8") as file:
+            return file.readlines()
+    except BaseException as BE:
+        showerror(title="Ошибка!", message="Ошибка при чтении файла!")
 
 
 def edit_file(path, text):
-    if not text:
-        showerror(title="Ошибка!", message="Список пуст!")
-        return
-    with open(path, "w") as file:
-        file.writelines(text)
+    if not text or text == '\n':
+        showerror(title="Ошибка!", message="Нечего сохранять!")
+        return False
+    try:
+        with open(path, "w", encoding="utf-8") as file:
+            file.writelines(text)
+        return True
+    except BaseException as BE:
+        showerror(title="Ошибка!", message="Ошибка при сохранении данных!")
+        return False
 
 
 def send_posts():
@@ -114,7 +136,11 @@ def wall_parsing(count):
             db[i][2] = "-" + db[i][0][(db[i][0].rfind("b") + 1):].strip()
         elif group.find("public") != -1 and db[i][2] == "0":
             db[i][2] = "-" + db[i][0][(db[i][0].rfind("c") + 1):].strip()
-        wall = api.wall.get(owner_id=int(db[i][2]), count=count)
+        try:
+            wall = api.wall.get(owner_id=int(db[i][2]), count=count)
+        except vk_api.ApiError:
+            showerror(title="Ошибка!", message="Аккаунт вк заблокирован!")
+            return
         if wall["count"] != 0:
             for j in range(len(wall["items"])):
                 try:
